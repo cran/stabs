@@ -1,0 +1,13 @@
+5ff13edba810aa66426d0192a4dde6d6 *ChangeLog
+6256c73af4df81f8c3dd2fc0a110533b *DESCRIPTION
+757a800f026a2ff005f1f435b1b8ca32 *NAMESPACE
+eabff8dc1530ada6c211bcc972a07ffd *R/fitfuns.R
+afe5019d6798af3594b476a145f0c94a *R/helpers.R
+21e7e3572e80ee76ba553efdb4fdcda5 *R/methods.R
+ce34e716637f3c9f06637db9b8f74cd4 *R/stabsel.R
+af14967a0289240d69b9f065740dfec0 *inst/NEWS.Rd
+a766c55af763b005ba3bae66896a57e0 *man/fitfuns.Rd
+d1b912b7df5ee0d54d40fc3245340255 *man/plot.Rd
+6402857eb5246ddc0f4300500e373794 *man/stabsel.Rd
+a92c3d76631288b04848c370e7e46e7e *man/stabsel_parameters.Rd
+1f81df05bd47082904c053b0f2eb0c1e *man/subsample.Rd

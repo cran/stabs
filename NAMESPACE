@@ -1,0 +1,18 @@
+import(methods)
+import(stats)
+import(parallel)
+
+export(stabsel, stabsel.matrix, stabsel.data.frame,
+       stabsel_parameters, stabsel_parameters.default,
+       plot.stabsel, print.stabsel,
+       glmnet.lasso, lars.lasso, lars.stepwise,
+       subsample)
+
+S3method(stabsel, matrix)
+S3method(stabsel, data.frame)
+# S3method(stabsel, formula)
+S3method(stabsel_parameters, default)
+S3method(print, stabsel)
+S3method(print, stabsel_parameters)
+S3method(plot, stabsel)
+# S3method(selected, stabsel)
