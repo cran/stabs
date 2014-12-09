@@ -84,7 +84,8 @@ stabsel(x, ...)
 
   This function implements the stability selection procedure by
   Meinshausen and Buehlmann (2010) and the improved error bounds by Shah
-  and Samworth (2013). The error bounds are implemented in the function
+  and Samworth (2013). For details see also Hofner et al. (2014). The
+  error bounds are implemented in the function
   \code{\link{stabsel_parameters}}. Two of the three arguments
   \code{cutoff}, \code{q} and \code{PFER} \emph{must} be specified. The
   per-family error rate (PFER), i.e., the expected number of false
@@ -118,13 +119,21 @@ stabsel(x, ...)
   \item{max}{maximum of selection probabilities.}
   \item{cutoff}{cutoff used.}
   \item{q}{average number of selected variables used.}
-  \item{PFER}{per-family error rate.}
+  \item{PFER}{(realized) upper bound for the per-family error rate.}
+  \item{specifiedPFER}{specified upper bound for the per-family error rate.}
+  \item{p}{the number of effects subject to selection.}
+  \item{B}{the number of subsamples.}
   \item{sampling.type}{the sampling type used for stability selection.}
   \item{assumption}{the assumptions made on the selection
     probabilities.}
   \item{call}{the call.}
 }
 \references{
+
+  B. Hofner, L. Boccuto and M. Goeker (2014), Controlling false
+  discoveries in high-dimensional situations: Boosting with stability
+  selection. \emph{Technical Report}, arXiv:1411.1285.\cr
+  \url{http://arxiv.org/abs/1411.1285}.
 
   N. Meinshausen and P. Buehlmann (2010), Stability selection.
   \emph{Journal of the Royal Statistical Society, Series B},
@@ -137,6 +146,8 @@ stabsel(x, ...)
 }
 \seealso{
   \code{\link{stabsel_parameters}} for the computation of error bounds,
+  \code{\link{stabsel.stabsel}} for the fast re-computation of
+  parameters of a fitted \code{stabsel} object,
   \code{\link{fitfun}} for available fitting functions and
   \code{\link{plot.stabsel}} for available plot functions
 }

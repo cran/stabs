@@ -8,10 +8,10 @@ print.stabsel <- function(x, decreasing = FALSE, print.all = TRUE, ...) {
     if (x$assumption == "r-concave")
         cat(" with r-concavity assumption\n")
     if (length(x$selected) > 0) {
-        cat("\nSelected base-learners:\n")
+        cat("\nSelected variables:\n")
         print(x$selected)
     } else {
-        cat("\nNo base-learner selected\n")
+        cat("\nNo variables selected\n")
     }
     cat("\nSelection probabilities:\n")
     if (print.all) {
@@ -19,29 +19,61 @@ print.stabsel <- function(x, decreasing = FALSE, print.all = TRUE, ...) {
     } else {
         print(sort(x$max[x$max > 0], decreasing = decreasing))
     }
-    cat("\n")
+    cat("\n---\n")
     print.stabsel_parameters(x, heading = FALSE)
     cat("\n")
     invisible(x)
 }
 
+## strip stabsel results
+parameters <- function(object) {
+    if (!inherits(object, "stabsel") || !inherits(object, "stabsel_parameters"))
+
+    res <- object[c("cutoff", "q", "PFER", "specifiedPFER", "p", "B",
+                    "sampling.type", "assumption")]
+    class(res) <- "stabsel_parameters"
+    res
+}
+
+stabsel_parameters.stabsel <- function(p, ...) {
+    parameters(p)
+}
+
 print.stabsel_parameters <- function(x, heading = TRUE, ...) {
     if (heading) {
-        cat("Stability Selection")
+        cat("Stability selection")
         if (x$assumption == "none")
-            cat(" without further assumptions\n")
+            cat(" without further assumptions\n\n")
         if (x$assumption == "unimodal")
-            cat(" with unimodality assumption\n")
+            cat(" with unimodality assumption\n\n")
         if (x$assumption == "r-concave")
-            cat(" with r-concavity assumption\n")
+            cat(" with r-concavity assumption\n\n")
     }
     cat("Cutoff: ", x$cutoff, "; ", sep = "")
     cat("q: ", x$q, "; ", sep = "")
     if (x$sampling.type == "MB")
         cat("PFER: ", x$PFER, "\n")
     else
-        cat("PFER(*): ", x$PFER,
+        cat("PFER (*): ", x$PFER,
             "\n   (*) or expected number of low selection probability variables\n")
+    if (!is.null(x$specifiedPFER)) {
+        cat("PFER (specified upper bound): ", x$specifiedPFER, "\n")
+    } else {
+        if (!!is.null(x$call) && !is.null(x$call[["PFER"]])) {
+            cat("PFER (specified upper bound): ", x$call[["PFER"]], "\n")
+        }
+    }
+    p <- NULL
+    if (!is.null(x$p)) {
+        p <- x$p
+    } else {
+        if (!is.null(x$max))
+            p <- length(x$max)
+    }
+    if (!is.null(p))
+        cat("PFER corresponds to signif. level ",
+            signif(x$PFER / p, 3), " (without multiplicity adjustment)\n",
+            sep = "")
     invisible(x)
 }
 
@@ -113,6 +145,9 @@ plot.stabsel <- function(x, main = deparse(x$call), type = c("maxsel", "paths"),
     if (exists("..old.par"))
         par(..old.par) # reset plotting settings
 }
+
+selected <- function(object, ...)
+    UseMethod("selected", object)
 
 selected.stabsel <- function(object, ...)
     object$selected

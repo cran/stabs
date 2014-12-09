@@ -1,15 +1,15 @@
 \name{stabsel_parameters}
 \alias{stabsel_parameters}
 \alias{stabsel_parameters.default}
+\alias{print.stabsel_parameters}
 \title{
   Compute Error Bounds for Stability Selection
 }
 \description{
-  Compute
+  Compute the missing parameter from the two given parameters
+  in order to assess suitability of the parameter constellation
 }
 \usage{
-## generic function to compute missing parameter from the other two parameters;
-## (internally used within stabsel)
 stabsel_parameters(p, ...)
 
 \method{stabsel_parameters}{default}(p, cutoff, q, PFER,
@@ -17,6 +17,8 @@ stabsel_parameters(p, ...)
                    assumption = c("unimodal", "r-concave", "none"),
                    sampling.type = c("SS", "MB"),
                    verbose = FALSE, FWER, ...)
+
+\method{print}{stabsel_parameters}(x, heading = TRUE, ...)
 }
 \arguments{
   \item{p}{ number of possible predictors (including intercept if
@@ -45,13 +47,15 @@ stabsel_parameters(p, ...)
     \code{warnings} should be issued. }
   \item{FWER}{ deprecated. Only for compatibility with older versions,
     use PFER instead.}
+  \item{x}{ an object of class \code{"stabsel_parameters"}.}
+  \item{heading}{ logical. Specifies if a heading line should be printed.}
   \item{\dots}{ additional arguments to be passed to next function.}
 }
 \details{
 
   This function implements the error bounds for stability selection
   by Meinshausen and Buehlmann (2010) and the improved error bounds by
-  Shah and Samworth (2013).
+  Shah and Samworth (2013). For details see also Hofner et al. (2014).
 
   Two of the three arguments \code{cutoff}, \code{q} and \code{PFER}
   \emph{must} be specified. The per-family error rate (PFER), i.e., the
@@ -65,12 +69,20 @@ stabsel_parameters(p, ...)
   The object has the following elements:
   \item{cutoff}{cutoff used.}
   \item{q}{average number of selected variables used.}
-  \item{PFER}{per-family error rate.}
+  \item{PFER}{(realized) upper bound for the per-family error rate.}
+  \item{specifiedPFER}{specified upper bound for the per-family error rate.}
+  \item{p}{the number of effects subject to selection.}
+  \item{B}{the number of subsamples.}
   \item{sampling.type}{the sampling type used for stability selection.}
   \item{assumption}{the assumptions made on the selection
     probabilities.}
 }
 \references{
+
+  B. Hofner, L. Boccuto and M. Goeker (2014),
+  Controlling false discoveries in high-dimensional situations: Boosting
+  with stability selection. \emph{Technical Report}, arXiv:1411.1285.\cr
+  \url{http://arxiv.org/abs/1411.1285}.
 
   N. Meinshausen and P. Buehlmann (2010), Stability selection.
   \emph{Journal of the Royal Statistical Society, Series B},

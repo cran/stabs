@@ -228,8 +228,133 @@ stabsel_parameters.default <- function(p, cutoff, q, PFER,
         warning("Upper bound for PFER larger than the number of base-learners.")
 
     res <- list(cutoff = cutoff, q = q, PFER = upperbound,
-                sampling.type = sampling.type, assumption = assumption)
+                specifiedPFER = PFER, p = p,
+                B = B, sampling.type = sampling.type, assumption = assumption)
     class(res) <- "stabsel_parameters"
     res
 }
 
+
+### the actual stability selection function (which is usually called by the
+### generic stabsel function)
+run_stabsel <- function(fitter, args.fitter,
+                        n, p, cutoff, q, PFER, folds, B, assumption,
+                        sampling.type, papply, verbose, FWER, eval, names, ...) {
+
+    folds <- check_folds(folds, B = B, n = n, sampling.type = sampling.type)
+    pars <- stabsel_parameters(p = p, cutoff = cutoff, q = q,
+                               PFER = PFER, B = B,
+                               verbose = verbose, sampling.type = sampling.type,
+                               assumption = assumption, FWER = FWER)
+    cutoff <- pars$cutoff
+    q <- pars$q
+    PFER <- pars$PFER
+
+    ## return parameter combination only if eval == FALSE
+    if (!eval)
+        return(pars)
+
+    ## fit model on subsamples;
+    ## Depending on papply, this is done sequentially or in parallel
+    res <- papply(1:ncol(folds), fitter, folds = folds, q = q,
+                  args.fitfun = args.fitter, ...)
+
+    ## check results
+    if (!is.list(res[[1]]) && names(res[[1]]) != c("selected", "path"))
+        stop(sQuote("fitfun"), " must return a list with two (named) elements",
+             ", i.e., ", sQuote("selected"), " and ", sQuote("path"))
+
+    phat <- NULL
+    if (!is.null(res[[1]]$path)) {
+        ## extract selection paths
+        paths <- lapply(res, function(x) x$path)
+        # make path-matrices comparable
+        steps <- sapply(paths, ncol)
+        maxsteps <- max(steps)
+        nms <- colnames(paths[[which.max(steps)]])
+        paths <- lapply(paths, function(x) {
+            if (ncol(x) < maxsteps) {
+                x <- cbind(x, x[, rep(ncol(x), maxsteps - ncol(x))])
+            }
+            return(x)
+        })
+        phat <- paths[[1]]
+        for (i in 2:length(paths))
+            phat <- phat + paths[[i]]
+        phat <- phat/length(paths)
+        colnames(phat) <- nms
+        rownames(phat) <- names
+    }
+
+    ## extract selected variables
+    res <- lapply(res, function(x) x$selected)
+    res <- matrix(nrow = ncol(folds), byrow = TRUE,
+                  unlist(res))
+    colnames(res) <- names
+
+    ret <- list(phat = phat,
+                selected = which(colMeans(res) >= cutoff),
+                max = colMeans(res))
+    ret <- c(ret, pars)
+    class(ret) <- "stabsel"
+    ret
+}
+
+
+## function to change PFER, cutoff or the assumption for a given stabsel object
+stabsel.stabsel <- function(x, cutoff, PFER, assumption = x$assumption, ...) {
+
+    assumption <- match.arg(assumption,
+                            choices = c("unimodal", "r-concave", "none"))
+
+    if (x$sampling.type == "MB" && assumption != "none")
+        warning(sQuote('sampling.type == "MB"'), " but ",
+                sQuote('assumption != "none"'))
+
+    if (sum(missing(cutoff), missing(PFER)) == 0)
+        stop("Only one of the two argumnets ",
+             sQuote("PFER"), " and ", sQuote("cutoff"),
+             " can be specifed")
+
+    ## if nothing changed: nothing to do
+    if (assumption == x$assumption) {
+        if (sum(missing(cutoff), missing(PFER)) == 2)
+            return(x)
+        if (!missing(cutoff) && x$cutoff == cutoff)
+            return(x)
+        if (!missing(PFER) && x$PFER == PFER)
+            return(x)
+    } else {
+        if (sum(missing(cutoff), missing(PFER)) == 2)
+            stop("Specify one of ", sQuote("PFER"), " and ", sQuote("cutoff"))
+    }
+    if (!missing(cutoff)) {
+        x$call[["cutoff"]] <- cutoff
+        x$call[["q"]] <- x$q
+        if (!is.null(x$call[["PFER"]]))
+            x$call[["PFER"]] <- NULL
+    }
+    if (!missing(PFER)) {
+        x$call[["PFER"]] <- PFER
+        x$call[["q"]] <- x$q
+        if (!is.null(x$call[["cutoff"]]))
+            x$call[["cutoff"]] <- NULL
+    }
+    if (x$assumption != assumption)
+        x$call[["assumption"]] <- assumption
+
+    pars <- stabsel_parameters(p = x$p, cutoff, q = x$q, PFER = PFER,
+                       B = x$B, assumption = assumption,
+                       sampling.type = x$sampling.type,
+                       verbose = FALSE)
+
+    cutoff <- pars$cutoff
+    PFER <- pars$PFER
+
+    ### now change results (by using new cutoff)
+    x$selected <- which(x$max >= pars$cutoff)
+    x$cutoff <- pars$cutoff
+    x$PFER <- pars$PFER
+    x$assumption <- assumption
+    return(x)
+}
