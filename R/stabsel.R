@@ -14,12 +14,37 @@ stabsel.matrix <- function(x, y, fitfun = lars.lasso, args.fitfun = list(),
                            B = ifelse(sampling.type == "MB", 100, 50),
                            assumption = c("unimodal", "r-concave", "none"),
                            sampling.type = c("SS", "MB"),
-                           papply = mclapply, verbose = TRUE, FWER, eval = TRUE,
+                           papply = mclapply, mc.preschedule = FALSE,
+                           verbose = TRUE, FWER, eval = TRUE,
                            ...) {
-
     cll <- match.call()
     p <- ncol(x) ## TODO: what about intercept?
+    
+    ## use graphical model structure if fitfun is the right class
+    graphical <- inherits(fitfun, "graphical_model")
+    if (missing(y)) {
+        if (!graphical) {
+            ## probably meant to be a graphical model - here we issue warnings
+            ## and set the function class if the function isn't a tagged as a 
+            ## graphical model
+            warning("No ", sQuote("y"), " supplied and ", sQuote("fitfun"), 
+                    " is not of class ", dQuote("graphical_model"),"\n",
+                    "however proceeding with graphical model analysis")
+            graphical <- TRUE
+            class(fitfun) <- c(class(fitfun), "graphical_model")
+        }
+        # set p and y for the graphical case
+        y <- x
+        p <- p * (p-1)/2
+    } else {
+        if (graphical) {
+            stop("Both ", sQuote("y"), " and a graphical_model ", sQuote("fitfun"), " supplied")
+        }
+    }
     n <- nrow(x)
+
+    if (is.null(colnames(x)))
+        colnames(x) <- 1:ncol(x)
 
     ## needed here to make B and folds happy
     sampling.type <- match.arg(sampling.type)
@@ -45,11 +70,19 @@ stabsel.matrix <- function(x, y, fitfun = lars.lasso, args.fitfun = list(),
     }
 
     nms <- colnames(x)
+    
+    if (graphical) {
+        ## graphical models need different names
+        allnms <- outer(nms, nms, paste, sep=" : ")
+        nms <- allnms[upper.tri(allnms)]
+    }
+    
     ret <- run_stabsel(fitter = fit_model, args.fitter = args.fitfun,
                 n = n, p = p, cutoff = cutoff, q = q,
                 PFER = PFER, folds = folds, B = B, assumption = assumption,
                 sampling.type = sampling.type, papply = papply,
-                verbose = verbose, FWER = FWER, eval = eval, names = nms, ...)
+                verbose = verbose, FWER = FWER, eval = eval, names = nms,
+                mc.preschedule = mc.preschedule, ...)
     ret$call <- cll
     ret$call[[1]] <- as.name("stabsel")
     return(ret)
@@ -160,11 +193,11 @@ stabsel_parameters.default <- function(p, cutoff, q, PFER,
 
     if (!missing(q)) {
         if (p < q)
-            stop("Average number of selected base-learners ", sQuote("q"),
-                 " must be smaller \n  than the number of base-learners",
+            stop("Average number of selected effects ", sQuote("q"),
+                 " must be smaller \n  than the number of effects",
                  " specified in the model ", sQuote("object"))
         if (q < 0)
-            stop("Average number of selected base-learners ", sQuote("q"),
+            stop("Average number of selected effects ", sQuote("q"),
                  " must be greater 0")
     }
 
@@ -225,7 +258,7 @@ stabsel_parameters.default <- function(p, cutoff, q, PFER,
     }
 
     if (verbose && PFER >= p)
-        warning("Upper bound for PFER larger than the number of base-learners.")
+        warning("Upper bound for PFER larger than the number of effects.")
 
     res <- list(cutoff = cutoff, q = q, PFER = upperbound,
                 specifiedPFER = PFER, p = p,
@@ -239,7 +272,8 @@ stabsel_parameters.default <- function(p, cutoff, q, PFER,
 ### generic stabsel function)
 run_stabsel <- function(fitter, args.fitter,
                         n, p, cutoff, q, PFER, folds, B, assumption,
-                        sampling.type, papply, verbose, FWER, eval, names, ...) {
+                        sampling.type, papply, verbose, FWER, eval, names,
+                        mc.preschedule = FALSE, ...) {
 
     folds <- check_folds(folds, B = B, n = n, sampling.type = sampling.type)
     pars <- stabsel_parameters(p = p, cutoff = cutoff, q = q,
@@ -256,13 +290,31 @@ run_stabsel <- function(fitter, args.fitter,
 
     ## fit model on subsamples;
     ## Depending on papply, this is done sequentially or in parallel
-    res <- papply(1:ncol(folds), fitter, folds = folds, q = q,
-                  args.fitfun = args.fitter, ...)
 
+    ## if mclappy is used consider mc.preschedule
+    if (all.equal(papply, mclapply) == TRUE) {
+        res <- suppressWarnings(
+                 papply(1:ncol(folds), function(...) try(fitter(...), silent = TRUE), folds = folds, q = q,
+                        args.fitfun = args.fitter, mc.preschedule =
+                        mc.preschedule, ...))
+    } else {
+        res <- papply(1:ncol(folds), function(...) try(fitter(...), silent = TRUE), folds = folds, q = q,
+                      args.fitfun = args.fitter, ...)
+    }
+
+    ## if any errors occured remove results and issue a warning
+    if (any(idx <- sapply(res, is.character))) {
+        warning(sum(idx), " fold(s) encountered an error. ",
+                "Results are based on ", ncol(folds) - sum(idx),
+                " folds only.\n",
+                "Original error message(s):\n",
+                sapply(res[idx], function(x) x))
+        res[idx] <- NULL
+    }
     ## check results
-    if (!is.list(res[[1]]) && names(res[[1]]) != c("selected", "path"))
-        stop(sQuote("fitfun"), " must return a list with two (named) elements",
-             ", i.e., ", sQuote("selected"), " and ", sQuote("path"))
+    if (!is.list(res[[1]]) || !"selected" %in% names(res[[1]]))
+        stop(sQuote("fitfun"), " must return a list with a named element called ",
+             sQuote("selected"), ", and an optional second element called ", sQuote("path"))
 
     phat <- NULL
     if (!is.null(res[[1]]$path)) {
@@ -284,18 +336,29 @@ run_stabsel <- function(fitter, args.fitter,
         phat <- phat/length(paths)
         colnames(phat) <- nms
         rownames(phat) <- names
+        
     }
+
+    ## extract violations (only needed for boosting models)
+    violations <- sapply(res, function(x)
+        !is.null(attr(x, "violations")) && attr(x, "violations"))
 
     ## extract selected variables
     res <- lapply(res, function(x) x$selected)
-    res <- matrix(nrow = ncol(folds), byrow = TRUE,
+    res <- matrix(nrow = length(res), byrow = TRUE,
                   unlist(res))
     colnames(res) <- names
-
+    
+    
     ret <- list(phat = phat,
                 selected = which(colMeans(res) >= cutoff),
                 max = colMeans(res))
     ret <- c(ret, pars)
+
+    ## return violations as attribute
+    if (any(violations))
+        attr(ret, "violations") <- violations
+
     class(ret) <- "stabsel"
     ret
 }
@@ -324,26 +387,42 @@ stabsel.stabsel <- function(x, cutoff, PFER, assumption = x$assumption, ...) {
             return(x)
         if (!missing(PFER) && x$PFER == PFER)
             return(x)
-    } else {
-        if (sum(missing(cutoff), missing(PFER)) == 2)
-            stop("Specify one of ", sQuote("PFER"), " and ", sQuote("cutoff"))
+    }
+    else {
+        if (sum(missing(cutoff), missing(PFER)) == 2) {
+            ## If both parameters PFER and cutoff were originally specified stop!
+            if (!is.null(x$call[["PFER"]]) && !is.null(x$call[["cutoff"]]))
+                stop("Specify one of ", sQuote("PFER"), " and ",
+                     sQuote("cutoff"))
+
+            ## If originally only one of PFER and cutoff was specified use this
+            ## parameter
+            if (is.null(x$call[["PFER"]])) {
+                cutoff <- x$cutoff
+            }
+            if (is.null(x$call[["cutoff"]])) {
+                PFER <- x$specifiedPFER
+            }
+        }
     }
     if (!missing(cutoff)) {
         x$call[["cutoff"]] <- cutoff
         x$call[["q"]] <- x$q
         if (!is.null(x$call[["PFER"]]))
             x$call[["PFER"]] <- NULL
+        x$specifiedPFER <- NULL
     }
     if (!missing(PFER)) {
         x$call[["PFER"]] <- PFER
         x$call[["q"]] <- x$q
         if (!is.null(x$call[["cutoff"]]))
             x$call[["cutoff"]] <- NULL
+        x$specifiedPFER <- PFER
     }
     if (x$assumption != assumption)
         x$call[["assumption"]] <- assumption
 
-    pars <- stabsel_parameters(p = x$p, cutoff, q = x$q, PFER = PFER,
+    pars <- stabsel_parameters(p = x$p, cutoff = cutoff, q = x$q, PFER = PFER,
                        B = x$B, assumption = assumption,
                        sampling.type = x$sampling.type,
                        verbose = FALSE)

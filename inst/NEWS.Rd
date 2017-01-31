@@ -1,6 +1,81 @@
 \name{NEWS}
 \title{News for Package 'stabs'}
 
+\section{Changes in stabs version 0.6-2 (2017-01-30)}{
+  \subsection{Miscellaneous}{
+    \itemize{
+    \item Move packages from \code{Enhances} to \code{Suggests}.
+    \item Make manuals work without package \pkg{TH.data}.
+    \item Speed up examples by adding \code{\\donttest} in two occassions.
+    \item Use markup \code{\\doi} for DOIs in manual.
+    }
+  }
+}
+
+\section{Changes in stabs version 0.6-1 (2017-01-28)}{
+  \subsection{Miscellaneous}{
+    \itemize{
+    \item Added DOIs to \file{DESCRIPTION} to fulfill CRAN policies.
+    \item Updated \file{README.md} and vignettes.
+    }
+  }
+}
+
+\section{Changes in stabs version 0.6-0 (2017-01-27)}{
+  \subsection{User-visible changes}{
+    \itemize{
+      \item Added support for graphical models via package \pkg{QUIC}
+        (closes \href{https://github.com/hofnerb/stabs/issues/12}{#12}, 
+        \href{https://github.com/hofnerb/stabs/issues/13}{#13} and 
+        \href{https://github.com/hofnerb/stabs/issues/14}{#14}; Code contributed
+        by Richard Beare).
+      \item Better handling of errors in (single) folds of \code{stabsel}:
+        results of folds without errors are used and a \code{warning} is
+        issued  (closes \href{https://github.com/hofnerb/stabs/issues/2}{#2}
+        and \href{https://github.com/hofnerb/stabs/issues/7}{#7}). 
+      \item Parallel computing via \code{mclapply}: Set
+        \code{mc.preschedule = FALSE} per default (closes
+        \href{https://github.com/hofnerb/stabs/issues/1}{#1}).
+      \item Make sure that per default \code{glmnet.lasso} selects at maximum
+        \code{q} variables. The previous anti-conservative version 
+        stays available via \code{args.fitfun = list(type = "anticonservative")} (closes 
+        \href{https://github.com/hofnerb/stabs/issues/22}{#23})
+      }
+  }
+  \subsection{Miscellaneous}{
+    \itemize{
+      \item Updated references: Hofner et al (2015) now available at BMC
+        Bioinformatics. See \code{citation("stabs")} for details.
+      \item Updated \file{DESCRIPTION} to be more informative.
+      \item Make \code{fitfun}s more quiet (closes 
+        \href{https://github.com/hofnerb/stabs/issues/19}{#19};
+        Code contributed by Gokcen Eraslan)
+      \item Replaced \code{base-learner} with \code{effect} in warnings and 
+        error messages (closes 
+        \href{https://github.com/hofnerb/stabs/issues/10}{#10}).
+      \item Added example on using \code{glmnet.lasso} (closes 
+        \href{https://github.com/hofnerb/stabs/issues/4}{#4}).
+      \item Boosting specific changes: warn if \code{mstop} is to small.  
+    }
+  }
+  \subsection{Bug-fixes}{
+    \itemize{
+      \item Disallow specification of penalty parameters via \code{args.fitfun}
+        (closes \href{https://github.com/hofnerb/stabs/issues/22}{#22}).
+      \item Fixed checks for results of \code{fitfun}s 
+        (closes \href{https://github.com/hofnerb/stabs/issues/17}{#17}; Code contributed
+        by Andrey Tovchigrechko)
+      \item Fixed citation. (closes \href{https://github.com/hofnerb/stabs/issues/9}{#9}).
+      \item Fix plot labels if matrices are used (as opposed to \code{data.frame}s)
+        (closes \href{https://github.com/hofnerb/stabs/issues/6}{#6}).
+      \item Fix issue when variables are dropped from active set in 
+        \code{lars.lasso} (closes \href{https://github.com/hofnerb/stabs/issues/5}{#5}).
+      \item Adhere to CRAN policies regarding import of base packages
+        (closes \href{https://github.com/hofnerb/stabs/issues/3}{#3}). 
+    }
+  } 
+}
+
 \section{Changes in stabs version 0.5-1 (2015-01-12)}{
   \subsection{Bug-fixes}{
     \itemize{

@@ -60,7 +60,8 @@ print.stabsel_parameters <- function(x, heading = TRUE, ...) {
         cat("PFER (specified upper bound): ", x$specifiedPFER, "\n")
     } else {
         if (!!is.null(x$call) && !is.null(x$call[["PFER"]])) {
-            cat("PFER (specified upper bound): ", x$call[["PFER"]], "\n")
+            if (is.numeric(x$call[["PFER"]]))
+                cat("PFER (specified upper bound): ", x$call[["PFER"]], "\n")
         }
     }
     p <- NULL
@@ -115,7 +116,7 @@ plot.stabsel <- function(x, main = deparse(x$call), type = c("maxsel", "paths"),
         if (is.null(labels))
             labels <- rownames(x$phat)
         axis(4, at = x$phat[rowSums(x$phat) > 0, ncol(x$phat)],
-             labels = labels[rowSums(x$phat) > 0], las = 1)
+             labels = labels[rowSums(x$phat) > 0], las = 1, ...)
     } else {
         ## if par(mar) not set by user ahead of plotting
         if (all(par()[["mar"]] == c(5, 4, 4, 2) + 0.1))
@@ -138,7 +139,7 @@ plot.stabsel <- function(x, main = deparse(x$call), type = c("maxsel", "paths"),
                col = col[tail(order(inc_freq), np)])
         if (is.null(labels))
             labels <- names(x$max)
-        axis(2, at = 1:np, labels[tail(order(inc_freq), np)], las = 2)
+        axis(2, at = 1:np, labels[tail(order(inc_freq), np)], las = 2, ...)
         ## add cutoff
         abline(v = x$cutoff, col = "grey")
     }

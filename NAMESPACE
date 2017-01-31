@@ -1,15 +1,19 @@
-import(methods)
-import(stats)
-import(parallel)
+import("methods")
+import("stats")
+import("parallel")
+importFrom("graphics", "abline", "axis", "matplot", "par", "plot", "points")
+importFrom("grDevices", "hcl")
+importFrom("utils", "tail")
+
 
 export(stabsel, stabsel.matrix, stabsel.data.frame, stabsel.stabsel,
-       run_stabsel,
+       run_stabsel, check_folds,
        stabsel_parameters, stabsel_parameters.default,
        stabsel_parameters.stabsel, parameters,
        selected, selected.stabsel,
        plot.stabsel, print.stabsel, print.stabsel_parameters,
        glmnet.lasso, glmnet.lasso_maxCoef, lars.lasso, lars.stepwise,
-       subsample)
+       subsample, quic.graphical_model, getLamPath)
 
 S3method(stabsel, matrix)
 S3method(stabsel, data.frame)

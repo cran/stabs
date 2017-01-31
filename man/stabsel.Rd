@@ -19,7 +19,8 @@ stabsel(x, ...)
         B = ifelse(sampling.type == "MB", 100, 50),
         assumption = c("unimodal", "r-concave", "none"),
         sampling.type = c("SS", "MB"),
-        papply = mclapply, verbose = TRUE, FWER, eval = TRUE, ...)
+        papply = mclapply, mc.preschedule = FALSE,
+        verbose = TRUE, FWER, eval = TRUE, ...)
 
 ## essentially a wrapper for data.frames (see details)
 \method{stabsel}{data.frame}(x,  y, intercept = FALSE, ...)
@@ -70,6 +71,9 @@ stabsel(x, ...)
     \code{\link[parallel]{mclapply}}. Alternatively, \code{parLapply}
     can be used. In the latter case, usually more setup is needed (see
     example of \code{\link[mboost]{cvrisk}} for some details).}
+  \item{mc.preschedule}{
+    preschedule tasks if \code{papply = \link{mclapply}} (default:
+    \code{mc.preschedule = FALSE})? For details see \code{\link{mclapply}}.}
   \item{verbose}{ logical (default: \code{TRUE}) that determines wether
     \code{warnings} should be issued. }
   \item{FWER}{ deprecated. Only for compatibility with older versions,
@@ -130,10 +134,10 @@ stabsel(x, ...)
 }
 \references{
 
-  B. Hofner, L. Boccuto and M. Goeker (2014), Controlling false
+  B. Hofner, L. Boccuto and M. Goeker (2015), Controlling false
   discoveries in high-dimensional situations: Boosting with stability
-  selection. \emph{Technical Report}, arXiv:1411.1285.\cr
-  \url{http://arxiv.org/abs/1411.1285}.
+  selection. \emph{BMC Bioinformatics}, 16:144.\cr
+  \doi{10.1186/s12859-015-0575-3}.
 
   N. Meinshausen and P. Buehlmann (2010), Stability selection.
   \emph{Journal of the Royal Statistical Society, Series B},
@@ -152,11 +156,19 @@ stabsel(x, ...)
   \code{\link{plot.stabsel}} for available plot functions
 }
 \examples{
-  ## make data set available
-  data("bodyfat", package = "TH.data")
+  
+  if (require("TH.data")) {
+      ## make data set available
+      data("bodyfat", package = "TH.data")
+  } else {
+      ## simulate some data if TH.data not available. 
+      ## Note that results are non-sense with this data.
+      bodyfat <- matrix(rnorm(720), nrow = 72, ncol = 10)
+  }
+  
   ## set seed
   set.seed(1234)
-
+  
   ####################################################################
   ### using stability selection with Lasso methods:
 
@@ -174,9 +186,45 @@ stabsel(x, ...)
       ##     dimensional example!
   }
 
+  ## set seed (again to make results comparable)
+  set.seed(1234)
+  if (require("glmnet")) {
+      (stab.glmnet <- stabsel(x = bodyfat[, -2], y = bodyfat[,2],
+                              fitfun = glmnet.lasso, cutoff = 0.75,
+                              PFER = 1))
+      par(mfrow = c(2, 1))
+      plot(stab.glmnet, main = "Lasso (glmnet)")
+      if (exists("stab.lasso"))
+          plot(stab.lasso, main = "Lasso (lars)")    
+  }
+  
+  
+  ## Select variables with maximum coefficients based on lasso estimate
+  
+  set.seed(1234) # reset seed
+  if (require("glmnet")) {
+      ## use cross-validated lambda 
+      lambda.min <- cv.glmnet(x = as.matrix(bodyfat[, -2]), y = bodyfat[,2])$lambda.min
+      (stab.maxCoef <- stabsel(x = bodyfat[, -2], y = bodyfat[,2],
+                               fitfun = glmnet.lasso_maxCoef, 
+                               # specify additional parameters to fitfun
+                               args.fitfun = list(lambda = lambda.min),
+                               cutoff = 0.75, PFER = 1))
+                               
+      ## WARNING: Using a fixed penalty (lambda) is usually not permitted and 
+      ##          not sensible. See ?fitfun for details.
+      
+      ## now compare standard lasso with "maximal parameter estimates" from lasso
+      par(mfrow = c(2, 1))
+      plot(stab.maxCoef, main = "Lasso (glmnet; Maximum Coefficients)")
+      plot(stab.glmnet, main = "Lasso (glmnet)")
+      ## --> very different results.
+  }
+
   ####################################################################
   ### using stability selection directly on computed boosting models
   ### from mboost
+
 
   if (require("mboost")) {
       ### low-dimensional example
@@ -190,13 +238,14 @@ stabsel(x, ...)
       ## the same:
       stabsel(mod, q = 3, PFER = 1, sampling.type = "MB", eval = FALSE)
 
+      \donttest{### Do not test the following code per default on CRAN as it takes some time to run:
       ## now run stability selection
       (sbody <- stabsel(mod, q = 3, PFER = 1, sampling.type = "MB"))
       opar <- par(mai = par("mai") * c(1, 1, 1, 2.7))
       plot(sbody)
       par(opar)
-
       plot(sbody, type = "maxsel", ymargin = 6)
+      }
   }
 }
 \keyword{nonparametric}

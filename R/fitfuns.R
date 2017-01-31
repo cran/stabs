@@ -6,19 +6,27 @@
 ##
 ################################################################################
 
-glmnet.lasso <- function(x, y, q, ...) {
-    if (!requireNamespace("glmnet"))
+glmnet.lasso <- function(x, y, q, type = c("conservative", "anticonservative"), ...) {
+    if (!requireNamespace("glmnet", quietly=TRUE))
         stop("Package ", sQuote("glmnet"), " needed but not available")
-
+    
     if (is.data.frame(x)) {
         message("Note: ", sQuote("x"),
                 " is coerced to a model matrix without intercept")
         x <- model.matrix(~ . - 1, x)
     }
-
+    
+    if ("lambda" %in% names(list(...)))
+        stop("It is not permitted to specify the penalty parameter ", sQuote("lambda"),
+             " for lasso when used with stability selection.")
+    
     ## fit model
-    fit <- glmnet::glmnet(x, y, dfmax = q - 1, ...)
-
+    type <- match.arg(type)
+    if (type == "conservative")
+        fit <- suppressWarnings(glmnet::glmnet(x, y, pmax = q, ...))
+    if (type == "anticonservative")
+        fit <- glmnet::glmnet(x, y, dfmax = q - 1, ...)
+    
     ## which coefficients are non-zero?
     selected <- predict(fit, type = "nonzero")
     selected <- selected[[length(selected)]]
@@ -33,7 +41,7 @@ glmnet.lasso <- function(x, y, q, ...) {
 }
 
 lars.lasso <- function(x, y, q, ...) {
-    if (!requireNamespace("lars"))
+    if (!requireNamespace("lars", quietly=TRUE))
         stop("Package ", sQuote("lars"), " needed but not available")
 
     if (is.data.frame(x)) {
@@ -47,6 +55,14 @@ lars.lasso <- function(x, y, q, ...) {
 
     ## which coefficients are non-zero?
     selected <- unlist(fit$actions)
+    ## check if variables are removed again from the active set
+    ## and remove these from selected
+    if (any(selected < 0)) {
+        idx <- which(selected < 0)
+        idx <- c(idx, which(selected %in% abs(selected[idx])))
+        selected <- selected[-idx]
+    }
+
     ret <- logical(ncol(x))
     ret[selected] <- TRUE
     names(ret) <- colnames(x)
@@ -58,7 +74,7 @@ lars.lasso <- function(x, y, q, ...) {
 }
 
 lars.stepwise <- function(x, y, q, ...) {
-    if (!requireNamespace("lars"))
+    if (!requireNamespace("lars", quietly=TRUE))
         stop("Package ", sQuote("lars"), " needed but not available")
 
     if (is.data.frame(x)) {
@@ -72,6 +88,14 @@ lars.stepwise <- function(x, y, q, ...) {
 
     ## which coefficients are non-zero?
     selected <- unlist(fit$actions)
+    ## check if variables are removed again from the active set
+    ## and remove these from selected
+    if (any(selected < 0)) {
+        idx <- which(selected < 0)
+        idx <- c(idx, which(selected %in% abs(selected[idx])))
+        selected <- selected[-idx]
+    }
+
     ret <- logical(ncol(x))
     ret[selected] <- TRUE
     names(ret) <- colnames(x)
@@ -83,7 +107,7 @@ lars.stepwise <- function(x, y, q, ...) {
 }
 
 glmnet.lasso_maxCoef <- function(x, y, q, ...) {
-    if (!requireNamespace("glmnet"))
+    if (!requireNamespace("glmnet", quietly=TRUE))
         stop("Package ", sQuote("glmnet"), " needed but not available")
 
     if (is.data.frame(x)) {
