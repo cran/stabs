@@ -1,6 +1,10 @@
 ## ----setup, include=FALSE------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
 
+required <- c("lars", "mboost")
+if (!all(sapply(required, function(pkg) requireNamespace(pkg, quietly = TRUE))))
+    knitr::opts_chunk$set(eval = FALSE)
+
 ## ---- eval = FALSE-------------------------------------------------------
 #  install.packages("stabs")
 

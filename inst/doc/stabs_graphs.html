@@ -209,7 +209,12 @@ fit graphical networks:</p>
 
 <pre><code class="r">library(stabs)
 library(huge) # Need package huge for generating test data
-library(QUIC)
+</code></pre>
+
+<pre><code>## Warning: package &#39;huge&#39; was built under R version 3.4.1
+</code></pre>
+
+<pre><code class="r">library(QUIC)
 library(igraph)
 </code></pre>
 
@@ -339,6 +344,7 @@ graphs rather well in this example.</p>
 ##     colnames(s) &lt;- as.character(1:ncol(s))
 ##     return(list(selected = selected, path = s))
 ## }
+## &lt;bytecode: 0x00000000107a1970&gt;
 ## &lt;environment: namespace:stabs&gt;
 ## attr(,&quot;class&quot;)
 ## [1] &quot;function&quot;        &quot;graphical_model&quot;

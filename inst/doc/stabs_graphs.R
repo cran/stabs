@@ -3,6 +3,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(knitr)
 read_chunk(system.file("stabs_graphs.R", package="stabs"))
 
+required <- c("huge", "QUIC", "igraph")
+if (!all(sapply(required, function(pkg) requireNamespace(pkg, quietly = TRUE))))
+    knitr::opts_chunk$set(eval = FALSE)
+
 ## ---- Setup, echo=TRUE, message=FALSE, results='hide'--------------------
 library(stabs)
 library(huge) # Need package huge for generating test data
