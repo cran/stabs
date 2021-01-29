@@ -1,21 +1,21 @@
-## ----setup, include=FALSE------------------------------------------------
+## ----setup, include=FALSE-----------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
 
 required <- c("lars", "mboost")
 if (!all(sapply(required, function(pkg) requireNamespace(pkg, quietly = TRUE))))
     knitr::opts_chunk$set(eval = FALSE)
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  install.packages("stabs")
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  library("devtools")
 #  install_github("hofnerb/stabs")
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  install.packages("devtools")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 library("stabs")
 library("lars")
 ## make data set available
@@ -33,16 +33,16 @@ set.seed(1234)
                           fitfun = lars.stepwise, cutoff = 0.75,
                           PFER = 1))
 
-## ----plot1, fig.height=7, fig.width=14, out.width="90%"------------------
+## ----plot1, fig.height=7, fig.width=14, out.width="90%"-----------------------
 ## plot results
 par(mfrow = c(1, 2))
 plot(stab.lasso, main = "Lasso")
 plot(stab.stepwise, main = "Stepwise Selection")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 lars.lasso
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 library("stabs")
 library("mboost")
 ### low-dimensional example
@@ -59,18 +59,18 @@ stabsel(mod, q = 3, PFER = 1, sampling.type = "MB", eval = FALSE)
 ## now run stability selection
 (sbody <- stabsel(mod, q = 3, PFER = 1, sampling.type = "MB"))
 
-## ----plot2, fig.height=7, fig.width=14, out.width="90%"------------------
+## ----plot2, fig.height=7, fig.width=14, out.width="90%"-----------------------
 opar <- par(mai = par("mai") * c(1, 1, 1, 2.7), mfrow = c(1, 2))
 plot(sbody, type = "paths")
 plot(sbody, type = "maxsel", ymargin = 6)
 par(opar)
 
-## ---- results='hide'-----------------------------------------------------
+## ---- results='hide'----------------------------------------------------------
 citation("stabs")
 
-## ---- echo = FALSE-------------------------------------------------------
+## ---- echo = FALSE------------------------------------------------------------
 citation("stabs")
 
-## ---- eval = FALSE-------------------------------------------------------
+## ---- eval = FALSE------------------------------------------------------------
 #  toBibtex(citation("stabs"))
 
